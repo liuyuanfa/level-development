@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body></body>
+  <script>
+    // 并发请求方法
+    async function concurrentRequests(urls, maxConcurrency) {
+      return new Promise((resolve, reject) => {
+        if (!urls.length) {
+          resolve([]);
+          return;
+        }
+
+        // 结果数组
+        const results = [];
+
+        // 并发计数器
+        let concurrencyCount = 0;
+
+        // 辅助函数：发送请求
+        async function sendRequest(url) {
+          try {
+            // 模拟异步请求
+            const response = await fetch(url);
+            const data = await response.json();
+            console.log("data", data);
+
+            // 将结果存入结果数组
+            results.push(data);
+          } catch (error) {
+            console.error(`Error fetching ${url}:`, error);
+          } finally {
+            // 请求完成后将并发计数器减1
+            concurrencyCount--;
+
+            // 继续发送请求，直到所有请求都完成
+            if (urls.length > 0) {
+              await sendNextRequest();
+            }
+            resolve(results);
+          }
+        }
+
+        // 辅助函数：发送下一个请求
+        async function sendNextRequest() {
+          // 如果并发请求数量已达到最大限制，则等待一个请求完成后再继续发送
+          while (concurrencyCount < maxConcurrency && urls.length > 0) {
+            const url = urls.shift();
+            concurrencyCount++;
+            sendRequest(url);
+          }
+        }
+
+        // 初始化发送请求
+        sendNextRequest();
+      });
+
+      // // 等待所有请求完成后返回结果数组
+      // return Promise.all(results);
+    }
+
+    // 调用并发请求方法
+    const urls = [];
+    for (let i = 0; i < 30; i++) {
+      urls.push(`https://jsonplaceholder.typicode.com/todos/${i + 1}`);
+    }
+    const maxConcurrency = 2;
+    concurrentRequests(urls, maxConcurrency)
+      .then((results) => {
+        console.log("All requests completed:", results);
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+      });
+  </script>
+</html>
